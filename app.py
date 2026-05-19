@@ -307,6 +307,7 @@ with tab1:
                 shap_values[0][:-1]
             )
             importance_df = pd.DataFrame({"Feature": input_df.columns,"Importance": feature_impact})
+            importance_df['Feature']=importance_df['Feature'].str.replace('_',' ').str.title()
             total_importance = importance_df["Importance"].sum()
             importance_df["Importance"] = (importance_df["Importance"]/total_importance)* 100
             importance_df = importance_df.sort_values(by="Importance", ascending=True).tail(7)
