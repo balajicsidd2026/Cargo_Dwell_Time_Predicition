@@ -126,91 +126,48 @@ with tab1:
 
         st.markdown('<div class="small-title">Shipment Information</div>', unsafe_allow_html=True)
 
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2 = st.columns(2)
 
         with c1:
-            date= st.date_input("Shipment Date",help="Arrival date of cargo shipment.")
-            time= st.time_input("Shipment Time",help="Arrival time of cargo shipment.")
-
-            cargo_weight = st.number_input("Cargo Weight (kg)", value=12500,help="Weight of the cargo in kilograms.")
-
+            payment_status = st.selectbox(
+                "Payment Status",
+                ['Paid','Pending','Overdue'],help="Current payment completion status."
+            )
+                        
+            documentation_status = st.selectbox(
+                "Documentation Status", 
+                    ['Complete','Incomplete'],help="Status of shipment documentation."
+            )
+            truck_availability = st.selectbox(
+                "Truck Availability",
+                ['Available','Delayed','Not Available'],help="Availability of pickup truck for cargo."
+            )
+            customs_status = st.selectbox(
+                "Customs Status",
+                ['pending','Cleared','Under Inspection','Hold',],help="Current customs processing stage."
+            )
+            inspection_required = st.selectbox(
+                "Inspection Required",
+                ['Yes','No'],help="Whether shipment requires customs inspection."
+            )
+        with c2:  
+            packaging_condition = st.selectbox(
+                "Packaging Condition",
+                ['Good','Damaged','Needs Repacking'],help="Current packaging quality condition."
+            )          
             shipment_priority = st.selectbox(
                 "Shipment Priority",
                 ['Low','Medium','High'],
                     help="Priority level of the shipment."
-                )
+            )
             shc = st.selectbox(
                 "Special Handling Code (SHC)",
                 [ 'PER','GEN', 'VAL', 'EAT', 'AVI', 'DGR'],help="Special Handling Code for cargo type."
             )
             
-
-        with c2:
-            customs_status = st.selectbox(
-                "Customs Status",
-                ['pending','Cleared','Under Inspection','Hold',],help="Current customs processing stage."
-            )
+            date= st.date_input("Shipment Date",help="Arrival date of cargo shipment.")
+            time= st.time_input("Shipment Time",help="Arrival time of cargo shipment.")
             
-            inspection_required = st.selectbox(
-                "Inspection Required",
-                ['Yes','No'],help="Whether shipment requires customs inspection."
-            )
-            clearance_type = st.selectbox(
-                "Clearance Type",
-                ['Manual','Automated'],help="Type of customs clearance process."
-            )
-            documentation_status = st.selectbox(
-                "Documentation Status", 
-                    ['Complete','Incomplete'],help="Status of shipment documentation."
-            )
-
-        with c3:
-            payment_status = st.selectbox(
-                "Payment Status",
-                ['Paid','Pending','Overdue'],help="Current payment completion status."
-            )
-
-            consignee_name = st.selectbox(
-                "Consignee Name",
-                ['ABC Pharma Ltd','Global Electronics Pvt Ltd','DHL Logistics', 'Skyline Traders','FreshFoods Exports','CargoLink Pvt Ltd','Secure Freight Systems','AeroTech Solutions','MedSupply International','Prime Retail Imports'],help="Receiving company/customer name."           
-            )
-            consignee_behavior = st.selectbox(
-                "Consignee Behavior",
-                ['Average','Cooperative','Delayed Response'],help="Historical consignee release behavior."
-            )
-            staff_availability = st.number_input(
-                "Staff Availability(%)",
-                min_value=0,
-                max_value=100,
-                value=80,
-                help="Available operational staff percentage."
-            )
-
-
-        with c4:
-            truck_availability = st.selectbox(
-                "Truck Availability",
-                ['Available','Delayed','Not Available'],help="Availability of pickup truck for cargo."
-            )
-
-            packaging_condition = st.selectbox(
-                "Packaging Condition",
-                ['Good','Damaged','Needs Repacking'],help="Current packaging quality condition."
-            )
-            warehouse_load_percentage = st.slider(
-                "Warehouse Load (%)",
-                0,
-                100,    
-                75,
-                help="Current warehouse occupancy percentage."
-            )
-            flight_delay_hours = st.slider(
-                "Flight Delay (hours)",
-                0.0,
-                24.0,
-                4.5,
-                help="Flight delay affecting shipment arrival."
-            )
 
 
         predict = st.button("🧳 Predict Dwell Time")
@@ -238,21 +195,14 @@ with tab1:
     )
 
             input_df = pd.DataFrame({
-                'cargo_weight':[cargo_weight],
                 'shipment_priority':[shipment_priority],
                 'shc':[shc],
                 'customs_status':[customs_status],
                 'inspection_required':[1 if customs_status != 'Cleared' else 0],
-                'clearance_type':['Manual'],
                 'documentation_status':[documentation_status],
                 'payment_status':[payment_status],
-                'consignee_name':[consignee_name],
-                'consignee_behavior':[consignee_behavior],
-                'staff_availability':[staff_availability],
                 'truck_availability':[truck_availability],
                 'packaging_condition':[packaging_condition],
-                'warehouse_load_percentage':[warehouse_load_percentage],
-                'flight_delay_hours':[flight_delay_hours],
                 'arrival_month':[arrival_month],
                 'arrival_day':[arrival_day],
                 'arrival_hour':[arrival_hour],
@@ -293,11 +243,8 @@ with tab1:
                     'shipment_priority',
                     'shc',
                     'customs_status',
-                    'clearance_type',
                     'documentation_status',
                     'payment_status',
-                    'consignee_name',
-                    'consignee_behavior',
                     'truck_availability',
                     'packaging_condition'
                 ]
@@ -372,13 +319,35 @@ with tab2:
     full_data = pd.read_csv("cargo_dwell_full_dataset.csv")
     full_data['arrival_datetime'] = pd.to_datetime(full_data['arrival_datetime'])
     st.subheader("Date Range Filter")
-    min_date = full_data['arrival_datetime'].min().date()
-    max_date = full_data['arrival_datetime'].max().date()
+    latest_date = full_data[
+        'arrival_datetime'
+    ].max()
+    preset = st.selectbox("Quick Filter",["None","Past Week","Past Month","Past 3 Months","Past 6 Months","Past Year","Past 2 Years"])
+
+    if preset == "Past Week":
+        start_date = latest_date - pd.Timedelta(days=7)
+    elif preset == "Past Month":
+        start_date = latest_date - pd.DateOffset(months=1)
+    elif preset == "Past 3 Months":
+        start_date = latest_date - pd.DateOffset(months=3)
+    elif preset == "Past 6 Months":
+        start_date = latest_date - pd.DateOffset(months=6)
+    elif preset == "Past Year":
+        start_date = latest_date - pd.DateOffset(years=1)
+    elif preset == "Past 2 Years":
+        start_date = latest_date - pd.DateOffset(years=2)
+    else:
+        start_date = full_data['arrival_datetime'].min()
     date_range = st.date_input(
         "Select Date Range",
-        value=(min_date,max_date),
-        min_value=min_date,
-        max_value=max_date
+        value=(
+            start_date.date(),
+            latest_date.date()
+        ),
+        min_value=full_data[
+            'arrival_datetime'
+        ].min().date(),
+        max_value=latest_date.date()
     )
     filtered_df = full_data[
         (full_data['arrival_datetime'] >= pd.to_datetime(date_range[0])) &
@@ -437,6 +406,10 @@ with tab2:
             color='#4c72b0',
             ax=ax2
         )
+        ax2.set_ylim(
+            0,
+            truck_data['dwell_time_hours'].max() + 10
+        )
 
         for i,v in enumerate(
             truck_data['dwell_time_hours']
@@ -483,16 +456,15 @@ with tab2:
         )
 
         sns.barplot(
-
             data=payment_data,
-
             x='payment_status',
-
             y='dwell_time_hours',
-
             color='#4c72b0',
-
             ax=ax3
+        )
+        ax3.set_ylim(
+            0,
+            payment_data['dwell_time_hours'].max() + 10
         )
 
         for i,v in enumerate(
@@ -563,6 +535,10 @@ with tab2:
             color='#4c72b0',
             ax=ax4
         )
+        ax4.set_ylim(
+            monthly_data['Dwell'].min() - 2,
+            monthly_data['Dwell'].max() + 2
+)
 
         for i,value in enumerate(
             monthly_data['Dwell']
@@ -620,18 +596,16 @@ with tab2:
         )
 
         sns.barplot(
-
             data=feature_importance,
-
             x='Importance',
-
             y='Feature',
-
             color='#4c72b0',
-
             ax=ax5
         )
-
+        ax5.set_xlim(
+            0,
+            feature_importance['Importance'].max() + 5
+        )
         for i,v in enumerate(
             feature_importance['Importance']
         ):
@@ -647,43 +621,6 @@ with tab2:
         )
 
         st.pyplot(fig5)
-
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-    with row2_col3:
-
-        st.markdown(
-            '<div class="card">',
-            unsafe_allow_html=True
-        )
-        customs_data = filtered_df[
-            'customs_status'
-        ].value_counts()
-
-        fig6, ax6 = plt.subplots(
-            figsize=(3.5,3)
-        )
-
-        ax6.pie(
-            customs_data.values,
-            labels=customs_data.index,
-            autopct='%1.1f%%',
-            radius=0.8,
-            colors=[
-                '#4c72b0',
-                '#89a2d9',
-                '#b7c6e6'
-            ]
-        )
-        ax6.set_aspect('0.6')
-        ax6.set_title(
-            '6. Customs Status Distribution'
-        )
-
-        st.pyplot(fig6)
 
         st.markdown(
             '</div>',
